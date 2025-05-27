@@ -1,7 +1,7 @@
 console.log("The main thread has started");
 
-const N = 500; //matrix size
-const NUM_WORKERS = 8; //the number of workers used
+const N = 1000; //matrix size
+const NUM_WORKERS = 4; //the number of workers used
 
 //declare the matrices
 let mat1; 
@@ -11,9 +11,11 @@ let mat2;
 let start; 
 let end; 
 let ex_time; 
+let ex_time_without_init;
 
 const runs = 50; 
 const timings = [];
+const timings_without_init = [];
 
 //generate random N x N matrix
 function generateMatrix(N){
@@ -42,9 +44,11 @@ async function runExperiment(){
         mat1 = generateMatrix(N);
         mat2 = generateMatrix(N);
         
-        ex_time = await runWorker(mat1, mat2, N, res);
+        const {ex_time, ex_time_without_init} = await runWorker(mat1, mat2, N, res);
         console.log(`Run ${t+1}: Execution time with Web Workers: ${ex_time.toFixed(2)} ms`);
+        console.log(`Run ${t+1}: Execution time with Web Workers without initialization time: ${ex_time_without_init.toFixed(2)} ms`);
         timings.push(ex_time);
+        timings_without_init.push(ex_time_without_init);
     }
 
     console.log(`The experiment runs have ended and they were in total: ${t} `);
@@ -59,6 +63,11 @@ function runWorker(mat1, mat2, N, res){
         start = performance.now();
 
         for(let w = 0; w < NUM_WORKERS; w++){
+            //create array to save the average times
+            const w_init_times = [];
+            //measure worker initalization time, that's including the splitting of the matrices and the transfer of messages
+            const w_start = performance.now();
+            
             const worker = new Worker('worker.js');
 
             //split the rows among workers
@@ -68,6 +77,11 @@ function runWorker(mat1, mat2, N, res){
             worker.postMessage({ mat1, mat2, N, rowStart, rowEnd });
 
             worker.onmessage = function(event){
+                //print the initialization time
+                const initTime = performance.now() - w_start;
+                w_init_times.push(initTime);
+                console.log(`Time taken to initialize worker: ${initTime}`);
+
                 let { partialRes, rowStart } = event.data; 
 
                 //copy partial result back into main result matrix
@@ -81,7 +95,20 @@ function runWorker(mat1, mat2, N, res){
                 if(finishedWorkers === NUM_WORKERS){
                     end = performance.now()
                     ex_time = end - start; 
-                    resolve(ex_time);
+
+                    //add an execution time without worker initialization
+                    let sum_w_init_times = w_init_times.reduce(function (x, y){
+                        return x + y;
+                    }, 0);
+
+                    ex_time_without_init = end - start - sum_w_init_times;
+                    //return an object because js cannot deconstruct without this
+                    resolve({ex_time, ex_time_without_init});
+                    
+
+                    //print the average initilization time
+                    avg_worker_init = w_init_times.reduce((a, b) => a + b, 0) / w_init_times.length;
+                    console.log(`The average initialization: ${avg_worker_init.toFixed(2)} ms`);
                 }
             }
         };
