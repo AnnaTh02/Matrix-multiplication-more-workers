@@ -4,7 +4,7 @@ const N = 1000; //matrix size
 const NUM_WORKERS = 4; //the number of workers used
 
 //declare the matrices
-let mat1; 
+let mat1;
 let mat2; 
 
 //declare the variables used in performance
