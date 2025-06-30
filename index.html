@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix multiplication with many workers</title>
+    <link rel="stylesheet" href="style.css">
     <script src="script.js" defer></script>
 </head>
 <body>
     <h1>Matrix multiplication (8x Web Workers Demo)</h1>
-    <canvas id="chart" width="800" height="400" style="border: 1px solid #000"></canvas>
+    <p>
+        <!--<input type="text" placeholder="Enter the number of your CPU cores" id="text-cores" oninput="updateCores(this.value)">-->
+        <input type="text" id="text-cores" placeholder="Enter the number of your CPU cores">
+    </p>
+    <p>
+        <canvas id="chart" width="800" height="400" style="border: 1px solid #000"></canvas>
+    </p>
 </body>
 </html>

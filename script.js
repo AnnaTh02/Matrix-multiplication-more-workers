@@ -1,7 +1,9 @@
 console.log("The main thread has started");
 
+let num_cores = 0; 
+
 const N = 1000; //matrix size
-const NUM_WORKERS = 4; //the number of workers used
+let NUM_WORKERS; //the number of workers used
 
 //declare the matrices
 let mat1;
@@ -13,9 +15,32 @@ let end;
 let ex_time; 
 let ex_time_without_init;
 
-const runs = 50; 
+const runs = 20; 
 const timings = [];
 const timings_without_init = [];
+
+//i want the number of cores to be updated based on the user's device
+//the update will be done manually for the time being
+document.getElementById("text-cores").addEventListener("change", updateCores);
+
+function updateCores() {
+    var cores = document.getElementById("text-cores");
+
+    if (cores.value === " "){
+        console.warn("Empty input. Expecting number of cores");
+    }
+
+    num_cores = parseInt(cores.value, 10);
+    console.log("User cores are: ", num_cores);
+    console.log(typeof(num_cores));
+
+    //the rest of the code after the number of cores is a valid number
+    console.log("Running the rest of the code");
+
+    NUM_WORKERS = num_cores;
+
+    runExperiment();
+}
 
 //generate random N x N matrix
 function generateMatrix(N){
@@ -44,6 +69,7 @@ async function runExperiment(){
         mat1 = generateMatrix(N);
         mat2 = generateMatrix(N);
         
+        //object to get the ex_time and ex_without_init time from promise
         const {ex_time, ex_time_without_init} = await runWorker(mat1, mat2, N, res);
         console.log(`Run ${t+1}: Execution time with Web Workers: ${ex_time.toFixed(2)} ms`);
         console.log(`Run ${t+1}: Execution time with Web Workers without initialization time: ${ex_time_without_init.toFixed(2)} ms`);
@@ -106,7 +132,7 @@ function runWorker(mat1, mat2, N, res){
                     resolve({ex_time, ex_time_without_init});
                     
 
-                    //print the average initilization time
+                    //print the average initilization time for each run
                     avg_worker_init = w_init_times.reduce((a, b) => a + b, 0) / w_init_times.length;
                     console.log(`The average initialization: ${avg_worker_init.toFixed(2)} ms`);
                 }
@@ -117,10 +143,10 @@ function runWorker(mat1, mat2, N, res){
 }
 
 function plotTimings(){
-    //Plot the timings
     const canvas = document.getElementById('chart');
     const ctx = canvas.getContext('2d');
 
+    //Plot the timings
     const maxTime = Math.max(...timings);
     const scaleY = canvas.height / maxTime; 
     const scaleX = canvas.width / runs;
@@ -137,9 +163,23 @@ function plotTimings(){
     ctx.strokeStyle = 'purple';
     ctx.setLineDash([]); //solid line
     ctx.stroke();
+    
+    //Plot the timings_without_init to compare
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - timings_without_init[0] * scaleY);
+    
+    for(let i = 0; i < timings_without_init.length; i++){
+        ctx.lineTo(i * scaleX, canvas.height - timings_without_init[i] * scaleY);
+    }
 
-    //draw average line
+    ctx.strokeStyle = 'green';
+    ctx.setLineDash([]); 
+    ctx.stroke();
+
+    //calculate averages with and without initialization time taken into account
     const avg = timings.reduce((a, b) => a + b, 0) / timings.length;
+    const avg_without = timings_without_init.reduce((a, b) => a + b, 0) / timings_without_init.length;
+
     ctx.beginPath();
     ctx.moveTo(0, canvas.height - avg * scaleY);
     ctx.lineTo(canvas.width, canvas.height - avg * scaleY);
@@ -147,9 +187,10 @@ function plotTimings(){
     ctx.setLineDash([5, 5]);
     ctx.stroke();
 
-    console.log(`Average time: ${avg.toFixed(2)} ms`);
+    console.log(`Average time: ${avg.toFixed(2)} ms with ${NUM_WORKERS}`);
+    console.log(`Average time without initialization: ${avg_without.toFixed(2)} ms with ${NUM_WORKERS}`);
 }
 
-runExperiment();
+
 
 
