@@ -137,6 +137,10 @@ function runWorker(mat1, mat2, N, res){
                     console.log(`The average initialization: ${avg_worker_init.toFixed(2)} ms`);
                 }
             }
+
+            worker.onerror = (event) => {
+                console.log("An error occured with this worker");
+            }
         };
     });
     
