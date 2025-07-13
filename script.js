@@ -238,50 +238,101 @@ function runWorker(mat1, mat2, N, res, t){
 function plotTimings(){
     const canvas = document.getElementById('chart');
     const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const padding = 50; 
+    const width = canvas.width - padding * 2; 
+    const height = canvas.height - padding * 2; 
 
     //Plot the timings
     const maxTime = Math.max(...timings);
-    const scaleY = canvas.height / maxTime; 
-    const scaleX = canvas.width / runs;
+    const minTime = Math.min(...timings);
+    const scaleY = height / (maxTime - minTime);
+    const scaleX = width / (timings.length - 1);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    //Draw axes
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height - timings[0] * scaleY);
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, canvas.height - padding);
+    ctx.lineTo(canvas.width - padding, canvas.height - padding);
+    ctx.stroke();
 
-    for(let i = 0; i < timings.length; i++){
-        ctx.lineTo(i * scaleX, canvas.height - timings[i] * scaleY);
+    //Y-axis labels and ticks
+    ctx.filelStyle = 'black';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    const steps = 5;
+    for(let i = 0; i <= steps; i++){
+        const val = minTime + (i * (maxTime - minTime)) / steps;
+        const y = canvas.height - padding - (val - minTime) * scaleY; 
+        ctx.fillText(val.toFixed(1) + ' ms', padding - 10, y);
+        ctx.beginPath();
+        ctx.moveTo(padding - 5, y);
+        ctx.lineTo(padding, y);
+        ctx.stroke();
     }
 
-    ctx.strokeStyle = 'purple';
+    //X-axis labels
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const labelCount = Math.min(10, timings.length);
+    for(let i = 0; i < labelCount; i++){
+        const index = Math.floor((i / (labelCount - 1)) * (timings.length - 1));
+        const x = padding + index * scaleX; 
+        ctx.fillText(index + 1, x, canvas.height - padding + 5);
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height - padding);
+        ctx.lineTo(x, canvas.height - padding + 5);
+        ctx.stroke();
+    }
+
+    //Draw performance line
+    ctx.beginPath();
+    ctx.moveTo(padding, canvas.height - padding - (timings[0] - minTime) * scaleY);
+
+    for(let k = 0; k <timings.length; k++){
+        const x = padding + k * scaleX;
+        const y = canvas.height - padding - (timings[k] - minTime) * scaleY;
+        ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'green';
     ctx.setLineDash([]); //solid line
     ctx.stroke();
-    
-    //Plot the timings_without_init to compare
+
+    //draw average line
+    const avg = timings.reduce((a, b) => a + b, 0) / timings.length; 
+    const avgY = canvas.height - padding - (avg - minTime) * scaleY;
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height - timings_without_init[0] * scaleY);
-    
-    for(let i = 0; i < timings_without_init.length; i++){
-        ctx.lineTo(i * scaleX, canvas.height - timings_without_init[i] * scaleY);
-    }
-
-    ctx.strokeStyle = 'green';
-    ctx.setLineDash([]); 
-    ctx.stroke();
-
-    //calculate averages with and without initialization time taken into account
-    const avg = timings.reduce((a, b) => a + b, 0) / timings.length;
-    const avg_without = timings_without_init.reduce((a, b) => a + b, 0) / timings_without_init.length;
-
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height - avg * scaleY);
-    ctx.lineTo(canvas.width, canvas.height - avg * scaleY);
+    ctx.moveTo(padding, avgY);
+    ctx.lineTo(canvas.width - padding, avgY);
     ctx.strokeStyle = 'red';
     ctx.setLineDash([5, 5]);
     ctx.stroke();
 
-    console.log(`Average time: ${avg.toFixed(2)} ms with ${NUM_WORKERS}`);
-    console.log(`Average time without initialization: ${avg_without.toFixed(2)} ms with ${NUM_WORKERS} workers`);
+    //draw legend
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'black';
+    ctx.fillText("Legend: ", canvas.width - padding - 75, padding);
+
+    ctx.strokeStyle = 'green';
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - padding - 80, padding + 15);
+    ctx.lineTo(canvas.width - padding - 50, padding + 15);
+    ctx.stroke();
+    ctx.fillText("Run time", canvas.width - padding -  25, padding + 15);
+
+    ctx.strokeStyle = 'red';
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - padding - 80, padding + 35);
+    ctx.lineTo(canvas.width - padding - 50, padding + 35);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText("Avg time", canvas.width - padding - 25, padding + 35);
+
+    console.log(`Average time: ${avg.toFixed(2)} ms`);
 }
 
 
