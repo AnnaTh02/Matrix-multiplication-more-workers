@@ -2,6 +2,7 @@
 console.log("Worker thread started");
 
 onmessage = function(event){
+    const start = this.performance.now()
     const { mat1, mat2, N, rowStart, rowEnd } = event.data;
 
     let partialRes = [];
@@ -17,5 +18,6 @@ onmessage = function(event){
         partialRes.push(row);
     }
 
-    postMessage({ partialRes, rowStart });
+    const exTime = performance.now() - start;
+    postMessage({ partialRes, rowStart, exTime });
 }
