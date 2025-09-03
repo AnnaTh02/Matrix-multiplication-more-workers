@@ -1,5 +1,5 @@
 //Worker thread
-console.log("Worker thread started");
+//console.log("Worker thread started");
 
 onmessage = function(event){
     const start = this.performance.now()

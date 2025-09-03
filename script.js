@@ -2,7 +2,7 @@ console.log("The main thread has started");
 
 let num_cores = 0; 
 
-const N = 100; //matrix size
+const N = 1000; //matrix size
 let NUM_WORKERS; //the number of workers used
 
 //declare the matrices
@@ -16,7 +16,7 @@ of all experimental runs*/
 const timings = [];
 
 //what does timings without init count !THIS ONE WILL PROBABLY HAVE TO BE ERASED
-const timings_without_init = [];
+//const timings_without_init = [];
 
 /*timings within workers stores for each run the values of the running times of the worker threads generated and executing.
 After each run the array is reinitialized*/
@@ -70,10 +70,10 @@ const download = (data) => {
 
 //function to create a csv string from an object
 const csvmaker = () => {
-    let csvContent = "Matrix Size, Method, Run, Execution Time, Execution time without init, Average worker init time";
+    let csvContent = "Matrix Size, Method, Run, Execution Time, Execution time without init, Average worker init time\n";
 
     experimentResults.forEach(result => {
-        csvContent += `${result.matrix_size}, ${result.method}, ${result.run}, ${result.time}, ${result.time_without}, ${result.average_init}\n`;
+        csvContent += `"${result.matrix_size}", "${result.method}", "${result.run}", "${result.time}", "${result.average_init}"\n`;
     });
 
     return csvContent;
@@ -116,21 +116,21 @@ async function runExperiment(){
         mat2 = generateMatrix(N);
         
         //object to get the ex_time and ex_without_init time from promise
-        const {ex_time, ex_time_without_init, timings_within_workers} = await runWorker(mat1, mat2, N, res, t);
+        const {ex_time, timings_within_workers} = await runWorker(mat1, mat2, N, res, t);
         console.log(`Run ${t+1}: Execution time with Web Workers: ${ex_time.toFixed(2)} ms`);
 
         //!WILL HAVE TO BE ERASED (PROBABLY)
-        console.log(`Run ${t+1}: Execution time with Web Workers without initialization time: ${ex_time_without_init.toFixed(2)} ms`);
+        //console.log(`Run ${t+1}: Execution time with Web Workers without initialization time: ${ex_time_without_init.toFixed(2)} ms`);
 
         //log the array with all the worker execution times for the run (times are calculated and passed from the worker thread)
-        for(let i = 0; i < timings_within_workers.length; i++){
-            console.log(`Run ${t + 1} Worker ${i + 1} Running time: ${timings_within_workers[i]}`)
-        }
+        // for(let i = 0; i < timings_within_workers.length; i++){
+        //     console.log(`Run ${t + 1} Worker ${i + 1} Running time: ${timings_within_workers[i]}`)
+        // }
 
         timings.push(ex_time);
         
         //!WILL HAVE TO BE ERASED (PROBABLY)
-        timings_without_init.push(ex_time_without_init);
+        //timings_without_init.push(ex_time_without_init);
     }
 
     console.log(`The experimental runs have ended and they were in total: ${t} `);
@@ -156,6 +156,7 @@ function runWorker(mat1, mat2, N, res, t){
     return new Promise((resolve) =>{
         let finishedWorkers = 0;
         let avg_worker_init;
+        //the overall performance of the experimental run
         start = performance.now();
 
         //create array to save the average times
@@ -182,9 +183,9 @@ function runWorker(mat1, mat2, N, res, t){
             worker.onmessage = function(event){
                 //REMOVE CODE BELOW
                 //print the initialization time
-                const initTime = performance.now() - w_start;
-                w_init_times.push(initTime);
-                console.log(`Time taken to initialize worker: ${initTime}`);
+                //const initTime = performance.now() - w_start;
+                //w_init_times.push(initTime);
+                //console.log(`Time taken to initialize worker: ${initTime}`);
 
                 //the worker through postMessage passes the partial result and its execution time
                 let { partialRes, rowStart, exTime } = event.data; 
@@ -218,12 +219,12 @@ function runWorker(mat1, mat2, N, res, t){
                     //print the average initilization time for each run
 
                     //THIS WILL HAVE TO BE ERASED 
-                    avg_worker_init = sum_w_init_times / w_init_times.length;
+                    //avg_worker_init = sum_w_init_times / w_init_times.length;
 
                     let avg_worker_init_2 = sum_worker_running_times / timings_within_workers.length;
 
                     //THIS WILL HAVE TO BE ERASED
-                    console.log(`The average initialization: ${avg_worker_init.toFixed(2)} ms`);
+                    //console.log(`The average initialization: ${avg_worker_init.toFixed(2)} ms`);
 
                     //log the average initialization time of the current experimental run
                     console.log(`The average running time of the worker thread in this run: ${avg_worker_init_2.toFixed(2)} ms`);
@@ -232,13 +233,13 @@ function runWorker(mat1, mat2, N, res, t){
                     /* in order to find the execution time without the workers' overhead the average initialization time is subtracted
                     since all of the workers execute in parallel and by subtracting the sum of initialization times doesn't provide an 
                     accurate representation (also the ex_time_without_init is negative)*/
-                    ex_time_without_init = end - start - avg_worker_init;
+                    //ex_time_without_init = end - start - avg_worker_init;
 
-                    let ex_time_without_init_2 = end - start - avg_worker_init_2;
-                    console.log(`Execution time without workers running time (but timed within the worker thread: ${ex_time_without_init_2.toFixed(2)} ms`);
+                    //let ex_time_without_init_2 = end - start - avg_worker_init_2;
+                    //console.log(`Execution time without workers running time (but timed within the worker thread: ${ex_time_without_init_2.toFixed(2)} ms`);
 
                     //return an object because js cannot deconstruct without this
-                    resolve({ex_time, ex_time_without_init, timings_within_workers});
+                    resolve({ex_time, timings_within_workers});
                     
                     
                     //FROM THIS REMOVE THE AVG_WORKER_INIT OR CHANGE IT TO THE NEW ONE 
@@ -247,8 +248,7 @@ function runWorker(mat1, mat2, N, res, t){
                         method: `Workers ${NUM_WORKERS}`,
                         run: t, 
                         time: ex_time,
-                        time_without: ex_time_without_init,
-                        average_init: avg_worker_init
+                        average_init: avg_worker_init_2
                     });
 
 
@@ -256,7 +256,8 @@ function runWorker(mat1, mat2, N, res, t){
             }
 
             worker.onerror = (event) => {
-                console.log("An error occured with this worker");
+                console.log("Worker error:", event.message);
+                reject(event)
             }
         };
 
@@ -292,7 +293,7 @@ function plotTimings(){
     ctx.stroke();
 
     //Y-axis labels and ticks
-    ctx.filelStyle = 'black';
+    ctx.fillStyle = 'black';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     const steps = 5;
